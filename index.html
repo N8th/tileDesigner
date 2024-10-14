@@ -1,1 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>12x12 Grid Color Picker</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: white;
+      }
 
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 40px);
+        grid-template-rows: repeat(12, 40px);
+        gap: 1px;
+        margin-top: 20px;
+      }
+
+      .grid div {
+        width: 40px;
+        height: 40px;
+        background-color: white;
+        border: 1px solid #dcdcdc;
+        box-sizing: border-box;
+        border-radius: 4px;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1),
+          0 3px 6px rgba(0, 0, 0, 0.15);
+        transition: background-color 0.2s, box-shadow 0.2s;
+      }
+
+      .grid div:hover {
+        cursor: pointer;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1),
+          0 5px 10px rgba(0, 0, 0, 0.3);
+      }
+
+      .color-picker {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .color-tile {
+        width: 40px;
+        height: 40px;
+        border-radius: 4px;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1),
+          0 3px 6px rgba(0, 0, 0, 0.15);
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .color-tile:hover {
+        cursor: pointer;
+        transform: translateY(-5px);
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1),
+          0 6px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      .controls {
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>12x12 Color Grid</h2>
+
+    <div class="color-picker">
+      <div
+        class="color-tile"
+        style="background-color: green"
+        data-color="green"
+      ></div>
+      <div
+        class="color-tile"
+        style="background-color: blue"
+        data-color="blue"
+      ></div>
+      <div
+        class="color-tile"
+        style="background-color: lightblue"
+        data-color="lightblue"
+      ></div>
+      <div
+        class="color-tile"
+        style="background-color: orange"
+        data-color="orange"
+      ></div>
+      <div
+        class="color-tile"
+        style="background-color: red"
+        data-color="red"
+      ></div>
+      <div
+        class="color-tile"
+        style="background-color: black"
+        data-color="black"
+      ></div>
+      <div
+        class="color-tile"
+        style="background-color: white"
+        data-color="white"
+      ></div>
+    </div>
+
+    <div class="grid" id="grid">
+      <!-- 12x12 grid filled with divs -->
+    </div>
+
+    <div class="controls">
+      <button id="fillAll">Fill All</button>
+      <button id="paintBucket">Paint Bucket</button>
+    </div>
+
+    <div class="controls">
+      <label for="bgColor">Webpage Background Color: </label>
+      <input type="color" id="bgColor" />
+    </div>
+
+    <script>
+      const grid = document.getElementById("grid");
+      const fillAllButton = document.getElementById("fillAll");
+      const paintBucketButton = document.getElementById("paintBucket");
+      let isPaintBucketMode = false;
+      let selectedColor = "white"; // Default color
+
+      // Create the grid, starting all white by default
+      for (let i = 0; i < 12 * 12; i++) {
+        const tile = document.createElement("div");
+        tile.classList.add("blend-border");
+        grid.appendChild(tile);
+
+        // Event listener for tile color change
+        tile.addEventListener("click", () => {
+          if (isPaintBucketMode) {
+            paintBucket(tile, selectedColor);
+          } else {
+            tile.style.backgroundColor = selectedColor;
+          }
+        });
+      }
+
+      // Color picker click event
+      document.querySelectorAll(".color-tile").forEach((tile) => {
+        tile.addEventListener("click", (event) => {
+          selectedColor = event.target.getAttribute("data-color");
+        });
+      });
+
+      // Fill All Button
+      fillAllButton.addEventListener("click", () => {
+        const tiles = grid.querySelectorAll("div");
+        tiles.forEach((tile) => {
+          tile.style.backgroundColor = selectedColor;
+        });
+      });
+
+      // Toggle Paint Bucket Mode
+      paintBucketButton.addEventListener("click", () => {
+        isPaintBucketMode = !isPaintBucketMode;
+        paintBucketButton.textContent = isPaintBucketMode
+          ? "Paint Bucket (On)"
+          : "Paint Bucket (Off)";
+      });
+
+      // Paint Bucket logic
+      function paintBucket(startTile, color) {
+        const tiles = Array.from(grid.querySelectorAll("div"));
+        const startColor = startTile.style.backgroundColor;
+        const index = tiles.indexOf(startTile);
+        if (startColor === color) return; // No need to paint if it's the same color
+
+        const toPaint = [index];
+        const directions = [-1, 1, -12, 12]; // left, right, up, down
+        while (toPaint.length > 0) {
+          const currentIndex = toPaint.pop();
+          const currentTile = tiles[currentIndex];
+          if (currentTile.style.backgroundColor === startColor) {
+            currentTile.style.backgroundColor = color;
+
+            // Check neighbors in all four directions
+            directions.forEach((direction) => {
+              const neighborIndex = currentIndex + direction;
+              if (neighborIndex >= 0 && neighborIndex < tiles.length) {
+                if (tiles[neighborIndex].style.backgroundColor === startColor) {
+                  toPaint.push(neighborIndex);
+                }
+              }
+            });
+          }
+        }
+      }
+
+      // Webpage background color selector
+      document.getElementById("bgColor").addEventListener("input", (event) => {
+        document.body.style.backgroundColor = event.target.value;
+      });
+    </script>
+  </body>
+</html>
