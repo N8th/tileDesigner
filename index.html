@@ -135,12 +135,12 @@
     </div>
 
     <div class="controls">
-      <label for="bgColor">Webpage Background Color: </label>
+      <label for="bgColor">Background Color: </label>
       <input type="color" id="bgColor" />
     </div>
 
     <div class="controls">
-      <label for="borderColor">Grid Border Color: </label>
+      <label for="borderColor">Border Color: </label>
       <input type="color" id="borderColor" />
     </div>
 
@@ -317,12 +317,12 @@
         updateColorCount();
       }
 
-      // Webpage background color selector
+      // background color selector
       document.getElementById("bgColor").addEventListener("input", (event) => {
         document.body.style.backgroundColor = event.target.value;
       });
 
-      // Grid border color selector
+      // border color selector
       document
         .getElementById("borderColor")
         .addEventListener("input", (event) => {
