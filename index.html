@@ -14,16 +14,16 @@
 
       .grid {
         display: grid;
-        grid-template-columns: repeat(12, 20px);
-        grid-template-rows: repeat(12, 20px);
+        grid-template-columns: repeat(12, 40px);
+        grid-template-rows: repeat(12, 40px);
         gap: 1px;
         margin-top: 20px;
         user-select: none;
       }
 
       .grid div {
-        width: 20px;
-        height: 20px;
+        width: 40px;
+        height: 40px;
         background-color: white;
         border: 1px solid #dcdcdc;
         box-sizing: border-box;
@@ -39,15 +39,16 @@
           0 5px 10px rgba(0, 0, 0, 0.3);
       }
 
-      .color-picker {
+      .color-picker,
+      .custom-color-picker {
         display: flex;
         gap: 10px;
         margin-top: 20px;
       }
 
       .color-tile {
-        width: 20px;
-        height: 20px;
+        width: 40px;
+        height: 40px;
         border-radius: 4px;
         box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1),
           0 3px 6px rgba(0, 0, 0, 0.15);
@@ -68,12 +69,18 @@
       .save-load {
         margin-top: 20px;
       }
+
+      .color-count {
+        margin-top: 20px;
+        font-size: 14px;
+        text-align: left;
+      }
     </style>
   </head>
   <body>
     <h2>12x12 Color Grid</h2>
 
-    <div class="color-picker">
+    <div class="color-picker" id="predefinedColors">
       <div
         class="color-tile"
         style="background-color: green"
@@ -111,6 +118,11 @@
       ></div>
     </div>
 
+    <div class="custom-color-picker">
+      <input type="color" id="customColorPicker" />
+      <button id="addCustomColor">Add Custom Color</button>
+    </div>
+
     <div class="grid" id="grid">
       <!-- 12x12 grid filled with divs -->
     </div>
@@ -118,6 +130,8 @@
     <div class="controls">
       <button id="fillAll">Fill All</button>
       <button id="paintBucket">Paint Bucket</button>
+      <button id="undoButton">Undo</button>
+      <button id="redoButton">Redo</button>
     </div>
 
     <div class="controls">
@@ -142,16 +156,28 @@
       <button id="loadCode">Load Save Code</button>
     </div>
 
+    <div class="color-count" id="colorCount">
+      <!-- Color count will display here -->
+    </div>
+
     <script>
       const grid = document.getElementById("grid");
       const fillAllButton = document.getElementById("fillAll");
       const paintBucketButton = document.getElementById("paintBucket");
       const copyCodeButton = document.getElementById("copyCode");
       const loadCodeButton = document.getElementById("loadCode");
+      const undoButton = document.getElementById("undoButton");
+      const redoButton = document.getElementById("redoButton");
       const designCodeInput = document.getElementById("designCode");
+      const customColorPicker = document.getElementById("customColorPicker");
+      const addCustomColorButton = document.getElementById("addCustomColor");
+      const colorCountDisplay = document.getElementById("colorCount");
+      let history = [];
+      let redoStack = [];
       let isPaintBucketMode = false;
       let selectedColor = "white"; // Default tile color
       let isDragging = false; // For mobile drag-to-paint
+      let customColors = []; // To store custom colors
 
       // Create the grid, starting all white by default
       for (let i = 0; i < 12 * 12; i++) {
@@ -183,7 +209,7 @@
         isDragging = false;
       });
 
-      // Color picker click event
+      // Predefined Color picker click event
       document.querySelectorAll(".color-tile").forEach((tile) => {
         tile.addEventListener("click", (event) => {
           selectedColor = event.target.getAttribute("data-color");
@@ -196,17 +222,32 @@
         tiles.forEach((tile) => {
           tile.style.backgroundColor = selectedColor;
         });
+        saveToHistory();
+        updateColorCount();
       });
 
-      // Toggle Paint Bucket Mode
-      paintBucketButton.addEventListener("click", () => {
-        isPaintBucketMode = !isPaintBucketMode;
-        paintBucketButton.textContent = isPaintBucketMode
-          ? "Paint Bucket (On)"
-          : "Paint Bucket (Off)";
+      // Add Custom Color Button
+      addCustomColorButton.addEventListener("click", () => {
+        const customColor = customColorPicker.value;
+        addCustomColor(customColor);
       });
 
-      // Paint Bucket logic
+      // Add Custom Color to the palette
+      function addCustomColor(color) {
+        customColors.push(color);
+        const customColorTile = document.createElement("div");
+        customColorTile.classList.add("color-tile");
+        customColorTile.style.backgroundColor = color;
+        customColorTile.setAttribute("data-color", color);
+        customColorTile.addEventListener("click", () => {
+          selectedColor = color;
+        });
+        document
+          .getElementById("predefinedColors")
+          .appendChild(customColorTile);
+      }
+
+      // Paint Bucket logic - Fixed to work
       function paintBucket(startTile, color) {
         const tiles = Array.from(grid.querySelectorAll("div"));
         const startColor = startTile.style.backgroundColor;
@@ -232,7 +273,17 @@
             });
           }
         }
+        saveToHistory();
+        updateColorCount();
       }
+
+      // Paint bucket mode toggle
+      paintBucketButton.addEventListener("click", () => {
+        isPaintBucketMode = !isPaintBucketMode;
+        paintBucketButton.textContent = isPaintBucketMode
+          ? "Paint Bucket (On)"
+          : "Paint Bucket (Off)";
+      });
 
       // Function to change tile color
       function changeTileColor(tile) {
@@ -240,7 +291,9 @@
           paintBucket(tile, selectedColor);
         } else {
           tile.style.backgroundColor = selectedColor;
+          saveToHistory();
         }
+        updateColorCount();
       }
 
       // Webpage background color selector
@@ -273,11 +326,69 @@
       // Load design from saved string
       loadCodeButton.addEventListener("click", () => {
         const design = designCodeInput.value.split(",");
+        loadDesign(designCodeInput.value);
+        updateColorCount();
+      });
+
+      // Load design from string
+      function loadDesign(designString) {
+        const design = designString.split(",");
         const tiles = grid.querySelectorAll("div");
         design.forEach((color, index) => {
           tiles[index].style.backgroundColor = color;
         });
+        saveToHistory();
+      }
+
+      // Undo functionality
+      undoButton.addEventListener("click", () => {
+        if (history.length > 1) {
+          redoStack.push(history.pop());
+          loadDesign(history[history.length - 1]);
+        }
       });
+
+      // Redo functionality
+      redoButton.addEventListener("click", () => {
+        if (redoStack.length > 0) {
+          const nextRedo = redoStack.pop();
+          loadDesign(nextRedo);
+          history.push(nextRedo);
+        }
+      });
+
+      // Save the current grid state to the history
+      function saveToHistory() {
+        const tiles = grid.querySelectorAll("div");
+        const currentState = Array.from(tiles)
+          .map((tile) => tile.style.backgroundColor)
+          .join(",");
+        history.push(currentState);
+        redoStack = []; // Clear redo stack on new actions
+      }
+
+      // Function to update color count
+      function updateColorCount() {
+        const tiles = grid.querySelectorAll("div");
+        const colorCount = {};
+        tiles.forEach((tile) => {
+          const color = tile.style.backgroundColor || "white";
+          if (colorCount[color]) {
+            colorCount[color]++;
+          } else {
+            colorCount[color] = 1;
+          }
+        });
+
+        // Display color count
+        colorCountDisplay.innerHTML = "<b>Tile colors needed:</b><br>";
+        Object.keys(colorCount).forEach((color) => {
+          colorCountDisplay.innerHTML += `${color}: ${colorCount[color]}<br>`;
+        });
+      }
+
+      // Update color count initially
+      updateColorCount();
     </script>
   </body>
 </html>
