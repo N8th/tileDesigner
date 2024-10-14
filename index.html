@@ -179,6 +179,27 @@
       let isDragging = false; // For mobile drag-to-paint
       let customColors = []; // To store custom colors
 
+      // Hardcoded default save code (example 12x12 grid)
+      const defaultSaveCode =
+        "orange,lightblue,lightblue,orange,lightblue,lightblue,lightblue,lightblue,orange,lightblue,lightblue,orange,lightblue,orange,orange,lightblue,lightblue,lightblue,lightblue,lightblue,lightblue,orange,orange,lightblue,lightblue,orange,orange,lightblue,lightblue,orange,orange,lightblue,lightblue,orange,orange,lightblue,orange,lightblue,lightblue,orange,lightblue,orange,orange,lightblue,orange,lightblue,lightblue,orange,orange,orange,orange,orange,orange,orange,orange,orange,orange,orange,orange,orange,orange,orange,green,orange,green,orange,orange,black,orange,black,orange,orange,orange,orange,green,green,green,orange,orange,black,black,black,orange,orange,orange,orange,orange,green,orange,orange,orange,orange,black,orange,orange,orange,orange,lightblue,lightblue,orange,lightblue,orange,orange,lightblue,orange,lightblue,lightblue,orange,lightblue,orange,orange,lightblue,lightblue,orange,orange,lightblue,lightblue,orange,orange,lightblue,lightblue,orange,orange,lightblue,lightblue,lightblue,lightblue,lightblue,lightblue,orange,orange,lightblue,orange,lightblue,lightblue,orange,lightblue,lightblue,lightblue,lightblue,orange,lightblue,lightblue,orange";
+
+      // Load hardcoded design on page load
+      window.onload = () => {
+        loadDesign(defaultSaveCode);
+        saveToHistory(); // Save initial design
+        updateColorCount(); // Update color count display
+      };
+
+      // Function to load design from a string
+      function loadDesign(designString) {
+        const design = designString.split(",");
+        const tiles = grid.querySelectorAll("div");
+        design.forEach((color, index) => {
+          tiles[index].style.backgroundColor = color;
+        });
+        saveToHistory();
+      }
+
       // Create the grid, starting all white by default
       for (let i = 0; i < 12 * 12; i++) {
         const tile = document.createElement("div");
@@ -329,16 +350,6 @@
         loadDesign(designCodeInput.value);
         updateColorCount();
       });
-
-      // Load design from string
-      function loadDesign(designString) {
-        const design = designString.split(",");
-        const tiles = grid.querySelectorAll("div");
-        design.forEach((color, index) => {
-          tiles[index].style.backgroundColor = color;
-        });
-        saveToHistory();
-      }
 
       // Undo functionality
       undoButton.addEventListener("click", () => {
